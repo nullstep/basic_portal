@@ -20,6 +20,7 @@ jQuery(function($) {
 			'secondary_colour',
 			'bg_colour',
 			'block_colour',
+			'contrast_colour',
 			'bg_image',
 			'company_details',
 			'widgets',

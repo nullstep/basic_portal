@@ -66,12 +66,12 @@
 	height: 200px;
 }
 
-#basic_portal-form .button-primary {
+#wpwrap .button-primary {
 	background: var(--admin-highlight);
 	color: var(--admin-contrast);
 }
 
-#basic_portal-form .choose-file-button {
+#wpwrap .choose-file-button {
 	background: var(--admin-highlight);
 	color: var(--admin-contrast);
 	border: 1px solid var(--admin-highlight);
@@ -81,14 +81,14 @@
 	left: 3px;
 }
 
-#basic_portal-form .choose-colour-button {
+#wpwrap .choose-colour-button {
 	position: relative;
 	height: 30px;
 	top: 3px;
 	left: 2px;
 }
 
-#basic_portal-form .switch {
+#wpwrap .switch {
 	position: relative;
 	display: inline-block;
 	width: 50px;
@@ -96,13 +96,13 @@
 	margin: 3px 0;
 }
 
-#basic_portal-form .switch input {
+#wpwrap .switch input {
 	opacity: 0;
 	width: 0;
 	height: 0;
 }
 
-#basic_portal-form .slider {
+#wpwrap .slider {
 	position: absolute;
 	cursor: pointer;
 	top: 0;
@@ -114,7 +114,7 @@
 	border-radius: 24px;
 }
 
-#basic_portal-form .slider:before {
+#wpwrap .slider:before {
 	position: absolute;
 	content: "";
 	height: 16px;
@@ -126,15 +126,15 @@
 	border-radius: 50%;
 }
 
-#basic_portal-form input:checked + .slider {
+#wpwrap input:checked + .slider {
 	background-color: var(--admin-highlight);
 }
 
-#basic_portal-form input:focus + .slider {
+#wpwrap input:focus + .slider {
 	box-shadow: 0 0 1px var(--admin-highlight);
 }
 
-#basic_portal-form input:checked + .slider:before {
+#wpwrap input:checked + .slider:before {
 	transform: translateX(26px);
 }
 
@@ -144,11 +144,11 @@
 	#basic_portal-form .col-2 {
 		width: 100%;
 	}
-	#basic_portal-form .choose-file-button {
+	#wpwrap .choose-file-button {
 		height: 40px;
 		top: -2px;
 	}
-	#basic_portal-form .choose-colour-button {
+	#wpwrap .choose-colour-button {
 		height: 40px;
 		top: 7px;
 	}
@@ -158,6 +158,7 @@
 	border: 1px solid #ddd;
 	margin-top: 4px;
 	margin-right: 15px;
+	height: 60vh;
 }
 
 /* eof */

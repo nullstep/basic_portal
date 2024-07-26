@@ -92,6 +92,10 @@ define('_ARGS_BASIC_PTL', [
 		'type' => 'string',
 		'default' => '#222'
 	],
+	'contrast_colour' => [
+		'type' => 'string',
+		'default' => '#111'
+	],
 	'bg_image' => [
 		'type' => 'string',
 		'default' => ''
@@ -185,6 +189,10 @@ define('_ADMIN_BASIC_PTL', [
 			],
 			'block_colour' => [
 				'label' => 'Admin Block Colour',
+				'type' => 'colour'
+			],
+			'contrast_colour' => [
+				'label' => 'Admin Contrast Colour',
 				'type' => 'colour'
 			]
 		]
@@ -571,6 +579,32 @@ function bp_is_user_role($role) {
 	return false;
 }
 
+function bp_plural($string) {
+	$no = [
+		'personnel'
+	];
+
+	switch (substr($string, -1)) {
+		case 'y': {
+			$plural = rtrim($string, 'y') . 'ies';
+			break;
+		}
+		case 'h': {
+			$plural = $string . 'es';
+			break;
+		}
+		case 's': {
+			$plural = $string . 'es';
+			break;
+		}
+		default: {
+			$plural = (in_array(strtolower(trim($string)), $no) ? $string : $string . 's');
+		}
+	}
+
+	return $plural;
+}
+
 //     ▄███████▄   ▄██████▄      ▄████████      ███         ▄████████   ▄█        
 //    ███    ███  ███    ███    ███    ███  ▀█████████▄    ███    ███  ███        
 //    ███    ███  ███    ███    ███    ███     ▀███▀▀██    ███    ███  ███        
@@ -586,6 +620,31 @@ function bp_init($dir) {
 	// nothing yet
 }
 
+function bp_admin_init() {
+	wp_enqueue_style('fontawesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css', '', '6.6.0', 'all');
+}
+
+// clean up admin bar
+
+function bp_clean_adminbar($admin_bar) {
+	$user = wp_get_current_user();
+
+	$admin_bar->remove_node('wp-logo');
+	$admin_bar->remove_node('updates');
+	$admin_bar->remove_node('comments');
+	$admin_bar->remove_node('new-content');
+	$admin_bar->remove_node('site-name');
+	$admin_bar->remove_node('my-account');
+	$admin_bar->remove_node('search');
+	$admin_bar->remove_node('customize');
+
+	$admin_bar->add_menu([
+		'id' => 'bp-dashboard',
+		'title'=> 'Welcome, ' . $user->display_name,
+		'href' => get_admin_url()
+	]);
+}
+
 // clean the admin side menu
 
 function bp_clean_admin_menu() {
@@ -596,20 +655,31 @@ function bp_clean_admin_menu() {
 	add_menu_page('App', 'App', 'read', 'app', 'bp_app_page');
 }
 
+// admin colours
+
+function bp_admin_colours() {
+?>
+<style>
+	:root {
+		--primary-brand-colour: <?php echo _BP['primary_colour']; ?>;
+		--admin-highlight: <?php echo _BP['primary_colour']; ?>;
+		--admin-contrast: <?php echo _BP['contrast_colour']; ?>;
+		--secondary-brand-colour: <?php echo _BP['secondary_colour']; ?>;
+		--bg-colour: <?php echo _BP['bg_colour']; ?>;
+		--block-colour: <?php echo _BP['block_colour']; ?>;
+		--company-logo: url('<?php echo get_site_url() . '/uploads/' . _BP['company_logo']; ?>');
+		--background-image: url('<?php echo get_site_url() . '/uploads/' . _BP['bg_image']; ?>');
+	}	
+</style>
+<?php
+}
+
 // admin styling and scripts
 
 function bp_admin_styling() {
 	if (!bp_check_pin()) {
 ?>
 <style>
-	:root {
-		--primary-brand-colour: <?php echo _BP['primary_colour']; ?>;
-		--secondary-brand-colour: <?php echo _BP['secondary_colour']; ?>;
-		--bg-colour: <?php echo _BP['bg_colour']; ?>;
-		--block-colour: <?php echo _BP['block_colour']; ?>;
-		--company-logo: url('<?php echo get_site_url() . '/uploads/' . _BP['company_logo']; ?>');
-		--background-image: url('<?php echo get_site_url() . '/uploads/' . _BP['bg_image']; ?>');
-	}
 	html.wp-toolbar {
 		padding-top: 10px !important
 	}
@@ -723,6 +793,13 @@ function bp_admin_styling() {
 	#footer-thankyou, #footer-upgrade {
 		color: #fff;
 	}
+	.postbox-header .hndle {
+		justify-content: flex-start;
+
+		& i {
+			padding-right: 10px;
+		}
+	}
 	<?php echo _BP['bp_css']; ?>
 </style>
 <script>
@@ -768,6 +845,86 @@ function bp_admin_styling() {
 	}
 }
 
+// allow extra mime types
+
+function bp_add_mime_types($mimes) {
+	$mimes['svg'] = 'image/svg+xml';
+	$mimes['webp'] = 'image/webp';
+	$mimes['ico'] = 'image/vnd.microsoft.icon';
+	$mimes['eot'] = 'application/vnd.ms-fontobject';
+	$mimes['otf'] = 'application/octet-stream';
+	$mimes['ttf'] = 'application/x-font-ttf';
+	$mimes['woff'] = 'application/x-font-woff';
+	$mimes['woff2'] = 'application/font-woff2';
+
+	return $mimes;
+}
+
+// allow unfiltered uploads
+
+function bp_unfiltered_upload($caps) {
+	define('ALLOW_UNFILTERED_UPLOADS', true);
+}
+
+//   ▄█     █▄    ▄█   ████████▄      ▄██████▄      ▄████████      ███         ▄████████  
+//  ███     ███  ███   ███   ▀███    ███    ███    ███    ███  ▀█████████▄    ███    ███  
+//  ███     ███  ███▌  ███    ███    ███    █▀     ███    █▀      ▀███▀▀██    ███    █▀   
+//  ███     ███  ███▌  ███    ███   ▄███          ▄███▄▄▄          ███   ▀    ███         
+//  ███     ███  ███▌  ███    ███  ▀▀███ ████▄   ▀▀███▀▀▀          ███      ▀███████████  
+//  ███     ███  ███   ███    ███    ███    ███    ███    █▄       ███               ███  
+//  ███ ▄█▄ ███  ███   ███   ▄███    ███    ███    ███    ███      ███         ▄█    ███  
+//   ▀███▀███▀   █▀    ████████▀     ████████▀     ██████████     ▄████▀     ▄████████▀
+
+// widget class
+
+class _bpWidget {
+	private $name;
+
+	public function __construct($args = []) {
+		$this->name = $args['name'] ?? 'r' . strtolower(md5(rand(999) . microtime()));
+		$this->icon = (isset($args['icon'])) ? '<i class="fa-solid fa-' . $args['icon'] . '"></i>' : '';
+		$this->title = (isset($args['title'])) ? ucwords(str_replace('-', ' ', $args['title'])) : 'No Title';
+		$this->kind = $args['kind'] ?? '';
+		$this->slug = $args['slug'] ?? '';
+		$this->text = (isset($args['text'])) ? '<p>' . $args['text'] . '</p>' : '';
+		$this->desc = (isset($args['desc'])) ? '<p>' . $args['desc'] . '</p>' : '';
+
+		$this->init();
+	}
+	
+	public function init() {
+		add_action('wp_dashboard_setup', [$this, 'bp_widget']);
+	}
+	
+	public function bp_widget() {
+		wp_add_dashboard_widget('bp_' . $this->name . '_widget', $this->icon . ' ' . $this->title, [$this, 'bp_html']);
+	}
+	
+	public function bp_html() {
+		echo $this->text;
+
+		if ($this->kind) {
+			switch ($this->kind) {
+				case 'type': {
+					echo '<p><a class="button button-primary" href="' . $URL .'edit.php?post_type=' . $this->slug . '">List ' . ucwords(bp_plural($this->slug)) . '</a>&nbsp;';
+					echo '&nbsp;<a class="button button-secondary" href="' . $URL .'post-new.php?post_type=' . $this->slug . '">Add ' . ucwords($this->slug) . '</a></p>';
+					break;
+				}
+				case 'taxonomy': {
+					echo 'taxonomy: ' . $this->slug;
+					break;
+				}
+				case 'user': {
+					echo 'user: ' . $this->slug;
+					break;
+				}
+			}
+		}
+
+		echo $this->desc;
+	}
+}
+
 // remove default dashboard widgets
 
 function bp_clean_dashboard_widgets() {
@@ -788,28 +945,9 @@ function bp_clean_dashboard_widgets() {
 // add our custom widgets
 
 function bp_custom_dashboard_widgets() {
+	global $bp_widgets;
 
-}
-
-// clean up admin bar
-
-function bp_clean_adminbar($admin_bar) {
-	$user = wp_get_current_user();
-
-	$admin_bar->remove_node('wp-logo');
-	$admin_bar->remove_node('updates');
-	$admin_bar->remove_node('comments');
-	$admin_bar->remove_node('new-content');
-	$admin_bar->remove_node('site-name');
-	$admin_bar->remove_node('my-account');
-	$admin_bar->remove_node('search');
-	$admin_bar->remove_node('customize');
-
-	$admin_bar->add_menu([
-		'id' => 'bp-dashboard',
-		'title'=> 'Welcome, ' . $user->display_name,
-		'href' => get_admin_url()
-	]);
+	
 }
 
 
@@ -859,10 +997,13 @@ function bp_app_page() {
 
 define('_BP', _bpSettings::get_settings());
 
+global $bp_widgets;
+
 // actions
 
 if (_BP['portal_active'] == 'yes') {
 	add_action('init', 'bp_init');
+	add_action('admin_init', 'bp_admin_init');
 
 	if (_BP['clean_adminbar'] == 'yes') {
 		add_action('admin_bar_menu', 'bp_clean_adminbar', 100);
@@ -877,8 +1018,24 @@ if (_BP['portal_active'] == 'yes') {
 	}
 
 	if (_BP['custom_widgets'] == 'yes') {
-		add_action('wp_dashboard_setup', 'bp_custom_dashboard_widgets');
+		$widgets = json_decode(_BP['widgets'], true);
+
+		if ($widgets && count($widgets) > 0) {
+			foreach ($widgets as $widget => $keys) {
+				$bp_widgets[$widget] = new _bpWidget([
+					'name' => $widget,
+					'icon' => $keys['icon'],
+					'title' => $keys['title'],
+					'kind' => $keys['kind'],
+					'slug' => $keys['slug'],
+					'text' => $keys['text'],
+					'desc' => $keys['description']				
+				]);
+			}
+		}
 	}
+
+	add_action('admin_head', 'bp_admin_colours');
 
 	if (_BP['style_admin'] == 'yes') {
 		add_action('admin_head', 'bp_admin_styling');
@@ -888,6 +1045,9 @@ if (_BP['portal_active'] == 'yes') {
 if (_BP['pwa_active'] == 'yes') {
 	// pwa stuff
 }
+
+add_filter('upload_mimes', 'bp_add_mime_types');
+//add_filter('init', 'bp_unfiltered_upload');
 
 // boot plugin
 
