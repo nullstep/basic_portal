@@ -621,6 +621,11 @@ function bp_init($dir) {
 }
 
 function bp_admin_init() {
+	if (!current_user_can('update_core')) {
+        remove_action('admin_notices', 'update_nag', 3);
+        remove_action('network_admin_notices', 'update_nag', 3);
+    }
+
 	wp_enqueue_style('fontawesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css', '', '6.6.0', 'all');
 }
 
@@ -729,6 +734,11 @@ function bp_admin_styling() {
 		border-color: var(--primary-brand-colour) !important;
 		color: var(--primary-brand-colour) !important;
 		background: var(--secondary-brand-colour) !important
+	}
+	.page-title-action.primary, .actions .button {
+		border-color: var(--primary-brand-colour) !important;
+		color: #fff !important;
+		background: var(--primary-brand-colour) !important
 	}
 	#welcome-panel, #menu-posts, #menu-pages, #menu-comments, #menu-appearance, #menu-plugins, #menu-tools, #menu-settings, #show-settings-link, #wp-admin-bar-comments, #wp-admin-bar-new-content, #application-passwords-section p, .term-parent-wrap, #minor-publishing-actions, #misc-publishing-actions, #screen-meta-links, #wp-admin-bar-wp-logo, #adminmenuback, #adminmenuwrap, #contextual-help-link-wrap, tr.user-language-wrap, #wp-admin-bar-view, .user-rich-editing-wrap, .user-admin-color-wrap, .user-comment-shortcuts-wrap, .user-admin-bar-front-wrap, .user-language-wrap, .user-url-wrap, .user-profile-picture, #application-passwords-section, .user-description-wrap .description, #your-profile h2, .inline-edit-group .inline-edit-status, #footer-thankyou, #footer-upgrade {
 		display: none;
