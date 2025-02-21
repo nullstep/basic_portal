@@ -605,6 +605,25 @@ function bp_plural($string) {
 	return $plural;
 }
 
+function bp_passwd($count) {
+	$chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
+	$nums = '23456789';
+	$pass = '';
+
+	for ($x = 0; $x < $count; $x++) {
+		$type = random_int(0, 2);
+		if ($type == 2) {
+			$pass .= $nums[random_int(0, strlen($nums) - 1)];
+		}
+		else {
+			$pass .= $chars[random_int(0, strlen($chars) - 1)];
+		}
+	}
+
+	return $pass;
+}
+
+
 //     ▄███████▄   ▄██████▄      ▄████████      ███         ▄████████   ▄█        
 //    ███    ███  ███    ███    ███    ███  ▀█████████▄    ███    ███  ███        
 //    ███    ███  ███    ███    ███    ███     ▀███▀▀██    ███    ███  ███        
