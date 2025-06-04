@@ -6,14 +6,14 @@
  * Description: set up site as portal/pwa
  * Author: nullstep
  * Author URI: https://localhost
- * Version: 1.0.1
+ * Version: 1.2.1
  */
 
 defined('ABSPATH') or die('⎺\_(ツ)_/⎺');
 
 // defines
 
-define('_PIN', '10872');
+define('_PIN', '101730');
 
 define('_PLUGIN_BASIC_PTL', 'basic_portal');
 
@@ -579,6 +579,10 @@ function bp_is_user_role($role) {
 	return false;
 }
 
+function bp_label($slug, $plural = true) {
+	return ucwords(str_replace('_', ' ', ($plural) ? bp_plural($slug) : $slug));
+}
+
 function bp_plural($string) {
 	$no = [
 		'personnel'
@@ -605,22 +609,12 @@ function bp_plural($string) {
 	return $plural;
 }
 
-function bp_passwd($count) {
-	$chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
-	$nums = '23456789';
-	$pass = '';
+// override new user emails
 
-	for ($x = 0; $x < $count; $x++) {
-		$type = random_int(0, 2);
-		if ($type == 2) {
-			$pass .= $nums[random_int(0, strlen($nums) - 1)];
-		}
-		else {
-			$pass .= $chars[random_int(0, strlen($chars) - 1)];
-		}
+if (!function_exists('wp_new_user_notification')) {
+	function wp_new_user_notification($user_id, $deprecated = null, $notify = '') {
+		return;
 	}
-
-	return $pass;
 }
 
 
@@ -636,7 +630,9 @@ function bp_passwd($count) {
 // init
 
 function bp_init($dir) {
-	// nothing yet
+	if (_BP['custom_widgets'] == 'yes') {
+		bp_custom_dashboard_widgets();
+	}
 }
 
 function bp_admin_init() {
@@ -653,18 +649,33 @@ function bp_admin_init() {
 function bp_clean_adminbar($admin_bar) {
 	$user = wp_get_current_user();
 
+	$admin_bar->remove_node('user-actions');
+	$admin_bar->remove_node('user-info');
+	$admin_bar->remove_node('logout');
+	$admin_bar->remove_node('menu-toggle');
 	$admin_bar->remove_node('wp-logo');
-	$admin_bar->remove_node('updates');
+	$admin_bar->remove_node('about');
+	$admin_bar->remove_node('contribute');
+	$admin_bar->remove_node('wporg');
+	$admin_bar->remove_node('documentation');
+	$admin_bar->remove_node('learn');
+	$admin_bar->remove_node('support-forums');
+	$admin_bar->remove_node('feedback');
+	$admin_bar->remove_node('site-name');
+	$admin_bar->remove_node('view-site');
 	$admin_bar->remove_node('comments');
 	$admin_bar->remove_node('new-content');
-	$admin_bar->remove_node('site-name');
-	$admin_bar->remove_node('my-account');
+	$admin_bar->remove_node('new-post');
+	$admin_bar->remove_node('new-media');
+	$admin_bar->remove_node('new-page');
+	$admin_bar->remove_node('new-user');
 	$admin_bar->remove_node('search');
 	$admin_bar->remove_node('customize');
+	$admin_bar->remove_node('updates');
 
 	$admin_bar->add_menu([
 		'id' => 'bp-dashboard',
-		'title'=> 'Welcome, ' . $user->display_name,
+		'title'=> '<i class="fa-solid fa-gauge" style=""></i> Welcome, ' . $user->display_name,
 		'href' => get_admin_url()
 	]);
 }
@@ -675,35 +686,48 @@ function bp_clean_admin_menu() {
 	if (!bp_check_pin()) {
 		$GLOBALS['menu'] = [];
 	}
-
-	add_menu_page('App', 'App', 'read', 'app', 'bp_app_page');
 }
 
 // admin colours
 
-function bp_admin_colours() {
-?>
+function bp_admin_branding() {
+	$primary_colour = _BP['primary_colour'];
+	$contrast_colour = _BP['contrast_colour'];
+	$secondary_colour = _BP['secondary_colour'];
+	$bg_colour = _BP['bg_colour'];
+	$block_colour = _BP['block_colour'];
+	$company_logo = wp_upload_dir()['url'] . '/' . _BP['company_logo'];
+	$background_img = wp_upload_dir()['url'] . '/' . _BP['bg_image'];
+
+	$styles = <<<CSS
 <style>
 	:root {
-		--primary-brand-colour: <?php echo _BP['primary_colour']; ?>;
-		--admin-highlight: <?php echo _BP['primary_colour']; ?>;
-		--admin-contrast: <?php echo _BP['contrast_colour']; ?>;
-		--secondary-brand-colour: <?php echo _BP['secondary_colour']; ?>;
-		--bg-colour: <?php echo _BP['bg_colour']; ?>;
-		--block-colour: <?php echo _BP['block_colour']; ?>;
-		--company-logo: url('<?php echo get_site_url() . '/uploads/' . _BP['company_logo']; ?>');
-		--background-image: url('<?php echo get_site_url() . '/uploads/' . _BP['bg_image']; ?>');
+		--primary-brand-colour: {$primary_colour};
+		--admin-highlight: {$primary_colour};
+		--admin-contrast: {$contrast_colour};
+		--secondary-brand-colour: {$secondary_colour};
+		--bg-colour: {$bg_colour};
+		--block-colour: {$block_colour};
+		--company-logo: url('{$company_logo}');
+		--background-image: url('{$background_img}');
 	}	
 </style>
-<?php
+CSS;
+
+	$styles = apply_filters('bp_user_branding', $styles);
+
+	echo $styles;
 }
 
 // admin styling and scripts
 
 function bp_admin_styling() {
 	if (!bp_check_pin()) {
+		$user = wp_get_current_user();
+		$role = bp_get_role($user);
 ?>
 <style>
+
 	html.wp-toolbar {
 		padding-top: 10px !important
 	}
@@ -759,7 +783,7 @@ function bp_admin_styling() {
 		color: #fff !important;
 		background: var(--primary-brand-colour) !important
 	}
-	#welcome-panel, #menu-posts, #menu-pages, #menu-comments, #menu-appearance, #menu-plugins, #menu-tools, #menu-settings, #show-settings-link, #wp-admin-bar-comments, #wp-admin-bar-new-content, #application-passwords-section p, .term-parent-wrap, #minor-publishing-actions, #misc-publishing-actions, #screen-meta-links, #wp-admin-bar-wp-logo, #adminmenuback, #adminmenuwrap, #contextual-help-link-wrap, tr.user-language-wrap, #wp-admin-bar-view, .user-rich-editing-wrap, .user-admin-color-wrap, .user-comment-shortcuts-wrap, .user-admin-bar-front-wrap, .user-language-wrap, .user-url-wrap, .user-profile-picture, #application-passwords-section, .user-description-wrap .description, #your-profile h2, .inline-edit-group .inline-edit-status, #footer-thankyou, #footer-upgrade {
+	#welcome-panel, #menu-posts, #menu-pages, #menu-comments, #menu-appearance, #menu-plugins, #menu-tools, #menu-settings, #show-settings-link, #wp-admin-bar-comments, #wp-admin-bar-new-content, #application-passwords-section p, .term-parent-wrap, #minor-publishing-actions, #misc-publishing-actions, #screen-meta-links, #wp-admin-bar-wp-logo, #adminmenuback, #adminmenuwrap, #contextual-help-link-wrap, tr.user-language-wrap, #wp-admin-bar-view, .user-rich-editing-wrap, .user-admin-color-wrap, .user-comment-shortcuts-wrap, .user-admin-bar-front-wrap, .user-language-wrap, .user-url-wrap, .user-profile-picture, #application-passwords-section, .user-description-wrap .description, .inline-edit-group .inline-edit-status, #footer-thankyou, #footer-upgrade, #wp-admin-bar-top-secondary {
 		display: none;
 	}
 	#major-publishing-actions {
@@ -775,12 +799,20 @@ function bp_admin_styling() {
 		vertical-align: middle;
 		display: inline-block
 	}
-	#dashboard-widgets .postbox-header {
-		background: #d3d4d7
+	#dashboard-widgets {
+		& .postbox-header {
+			background: #d3d4d7
+		}
+
+		& h2 {
+			font-size: 1.1rem
+		}
+
+		& .inside .button {
+			margin-top: 10px;
+		}
 	}
-	#dashboard-widgets h2 {
-		font-size: 1.1rem
-	}
+
 	#wpadminbar {
 		height: 64px;
 		padding-left: 15px;
@@ -791,11 +823,22 @@ function bp_admin_styling() {
 		background-size: auto 70%;
 		background-repeat: no-repeat;
 	}
+	#wpadminbar i {
+		display: inline-block;
+		position: relative;
+		margin-right: 1rem;
+		font-size: 1.55rem;
+		font-weight: 900;
+		font-family: "Font Awesome 6 Free";
+		top: -2px;
+	}
 	#wpadminbar .ab-top-menu>li.hover>.ab-item, #wpadminbar.nojq .quicklinks .ab-top-menu>li>.ab-item:focus, #wpadminbar:not(.mobile) .ab-top-menu>li:hover>.ab-item, #wpadminbar:not(.mobile) .ab-top-menu>li>.ab-item:focus {
 		background: none;
+		color: var(--primary-brand-colour);
 	}
 	#wpbody {
 		margin-top: 64px;
+		min-height: 80vh;
 	}
 	#wp-admin-bar-bp-dashboard {
 		height: 64px;
@@ -808,12 +851,16 @@ function bp_admin_styling() {
 	#wpadminbar .quicklinks .ab-empty-item, #wpadminbar .quicklinks a, #wpadminbar .shortlink-input {
 		height: 64px;
 	}
+	body {
+		background-color: var(--bg-colour);
+	}
 	#wpwrap {
-		background: #f0f0f1 var(--background-image) no-repeat;
+		background: var(--bg-colour) var(--background-image) no-repeat;
 		background-size: auto 80%;
-		background-position: center
+		background-position: center top;
 	}
 	#wpfooter {
+		position: static;
 		display: block;
 		background-color: var(--block-colour);
 		color: #f0f0f1;
@@ -822,6 +869,9 @@ function bp_admin_styling() {
 	#footer-thankyou, #footer-upgrade {
 		color: #fff;
 	}
+	.postbox {
+		background-color: rgba(255, 255, 255, 0.5);
+	}
 	.postbox-header .hndle {
 		justify-content: flex-start;
 
@@ -829,26 +879,52 @@ function bp_admin_styling() {
 			padding-right: 10px;
 		}
 	}
+	#your-profile {
+		& h2:not(:first-child) {
+			display: none;
+		}
+	}
+	.user-rich-editing-wrap,
+	.user-syntax-highlighting-wrap,
+	.user-admin-color-wrap,
+	.user-comment-shortcuts-wrap,
+	.user-admin-bar-front-wrap,
+	.user-language-wrap,
+	.user-description-wrap,
+	#application-passwords-section {
+		display: none;
+	}
+
 	<?php echo _BP['bp_css']; ?>
 </style>
 <script>
-	jQuery(document).ready(function($) {
+	jQuery(function($) {
 		const URL = '<?php echo admin_url(); ?>';
 		const PRIMARY_COLOUR = '<?php echo _BP['primary_colour']; ?>';
 		const SECONDARY_COLOUR = '<?php echo _BP['secondary_colour']; ?>';
-		const COMPANY_LOGO = '<?php echo _BP['company_logo']; ?>';
-		const BACKGROUND_IMAGE = '<?php echo _BP['bg_image']; ?>';
+		const COMPANY_LOGO = '<?php echo wp_upload_dir()['url'] . '/' . _BP['company_logo']; ?>';
+		const BACKGROUND_IMAGE = '<?php echo wp_upload_dir()['url'] . '/' . _BP['bg_image']; ?>';
 		const COMPANY_NAME = '<?php echo _BP['company_name']; ?>';
 		const COMPANY_DETAILS = '<?php echo str_replace("\n", '<br>', _BP['company_details']); ?>';
 		const PORTAL_TITLE = '<?php echo _BP['portal_title']; ?>';
 		const USER_NAME = '<?php echo $user->display_name; ?>';
-		const USER_ROLE = '<?php echo bp_get_role($user); ?>';
+		const USER_ROLE = '<?php echo $role; ?>';
 
 		$('#adminmenuback, #adminmenuwrap, #contextual-help-link-wrap, #screen-options-wrap p, #wp-admin-bar-menu-toggle').remove();
 
 		$('#footer-thankyou').html(COMPANY_DETAILS).show();
+<?php
+		if (in_array($role, ['administrator', 'superadmin', 'admin'])) {
+?>
 		$('#footer-upgrade').html('').show();
-
+<?php
+		}
+		else {
+?>
+		$('#footer-upgrade').html('<p>Portal Powered by</p><img src="' + COMPANY_LOGO + '" style="height:64px">').show();
+<?php
+		}
+?>
 		if ($('#wpbody-content .wrap h1').text() == 'Dashboard') {
 			$('#wpbody-content .wrap h1').text(PORTAL_TITLE);
 		}
@@ -889,11 +965,6 @@ function bp_add_mime_types($mimes) {
 	return $mimes;
 }
 
-// allow unfiltered uploads
-
-function bp_unfiltered_upload($caps) {
-	define('ALLOW_UNFILTERED_UPLOADS', true);
-}
 
 //   ▄█     █▄    ▄█   ████████▄      ▄██████▄      ▄████████      ███         ▄████████  
 //  ███     ███  ███   ███   ▀███    ███    ███    ███    ███  ▀█████████▄    ███    ███  
@@ -908,6 +979,13 @@ function bp_unfiltered_upload($caps) {
 
 class _bpWidget {
 	private $name;
+	private $icon;
+	private $title;
+	private $kind;
+	private $slug;
+	private $options;
+	private $text;
+	private $desc;
 
 	public function __construct($args = []) {
 		$this->name = $args['name'] ?? 'r' . strtolower(md5(rand(999) . microtime()));
@@ -915,6 +993,7 @@ class _bpWidget {
 		$this->title = (isset($args['title'])) ? ucwords(str_replace('-', ' ', $args['title'])) : 'No Title';
 		$this->kind = $args['kind'] ?? '';
 		$this->slug = $args['slug'] ?? '';
+		$this->options = $args['options'] ?? null;
 		$this->text = (isset($args['text'])) ? '<p>' . $args['text'] . '</p>' : '';
 		$this->desc = (isset($args['desc'])) ? '<p>' . $args['desc'] . '</p>' : '';
 
@@ -933,25 +1012,90 @@ class _bpWidget {
 		echo $this->text;
 
 		if ($this->kind) {
+			$admin_url = get_admin_url();
+			$user = wp_get_current_user();
+
+			$list = true;
+			$add = true;
+
+			if ($this->options) {
+				if (!in_array('list', explode(',', $this->options))) {
+					$list = false;
+				}
+				if (!in_array('add', explode(',', $this->options))) {
+					$add = false;
+				}
+			}
+
 			switch ($this->kind) {
-				case 'type': {
-					echo '<p><a class="button button-primary" href="' . $URL .'edit.php?post_type=' . $this->slug . '">List ' . ucwords(bp_plural($this->slug)) . '</a>&nbsp;';
-					echo '&nbsp;<a class="button button-secondary" href="' . $URL .'post-new.php?post_type=' . $this->slug . '">Add ' . ucwords($this->slug) . '</a></p>';
+				case 'post': {
+					if ($list) {
+						echo '<a class="button button-primary" href="' . $admin_url .'edit.php?post_type=' . $this->slug . '">List ' . bp_label($this->slug) . '</a>&nbsp;';
+					}
+					if ($add) {
+						echo '&nbsp;<a class="button button-secondary" href="' . $admin_url .'post-new.php?post_type=' . $this->slug . '">Add ' . bp_label($this->slug, false) . '</a>';
+					}
 					break;
 				}
 				case 'taxonomy': {
-					echo 'taxonomy: ' . $this->slug;
+					if ($list) {
+						echo '<a class="button button-primary" href="' . $admin_url .'edit-tags.php?taxonomy=' . $this->slug . '">List ' . bp_label($this->slug) . '</a>&nbsp;';
+					}
+					if ($add) {
+						echo '&nbsp;<a class="button button-secondary" href="' . $admin_url .'edit-tags.php?action=new&taxonomy=' . $this->slug . '">Add ' . bp_label($this->slug, false) . '</a>';
+					}
 					break;
 				}
 				case 'user': {
-					echo 'user: ' . $this->slug;
+					if ($list) {
+						echo '<a class="button button-primary" href="' . $admin_url .'users.php">List Users</a>&nbsp;';
+					}
+					if ($add) {
+						echo '&nbsp;<a class="button button-secondary" href="' . $admin_url .'user-new.php">Add User</a>';
+					}
+					break;
+				}
+				case 'admin': {
+					if (is_array($this->slug) && count($this->slug)) {
+						foreach ($this->slug as $slug) {
+							list($url, $title) = explode('|', $slug);
+							echo '<a class="button button-primary" href="' . $admin_url . 'admin.php?uid=' . $user->ID . '&' . $url . '">' . $title . '</a> &nbsp;';
+						}
+					}
+					else {
+						echo '<a class="button button-primary" href="' . $admin_url . 'admin.php?uid=' . $user->ID . '&' . $this->slug . '">' . $this->title . '</a>';
+					}
+					break;
+				}
+				case 'action': {
+					if (is_array($this->slug) && count($this->slug)) {
+						foreach ($this->slug as $slug) {
+							list($url, $title) = explode('|', $slug);
+							echo '<a class="button button-primary" href="' . $admin_url . $url . '">' . $title . '</a> &nbsp;';
+						}
+					}
+					else {
+						echo '<a class="button button-primary" href="' . $admin_url . $this->slug . '">' . $this->title . '</a>';
+					}
 					break;
 				}
 			}
 		}
 
+		if (is_string($this->slug)) {
+			$function = 'bp_' . $this->slug . '_widget';
+
+			if (function_exists($function)) {
+				echo call_user_func($function);
+			}
+		}
+
 		echo $this->desc;
 	}
+}
+
+function bp_control_widget() {
+	return '<a class="button button-primary" href="' . wp_logout_url() .'">Log Out</a>';
 }
 
 // remove default dashboard widgets
@@ -976,7 +1120,31 @@ function bp_clean_dashboard_widgets() {
 function bp_custom_dashboard_widgets() {
 	global $bp_widgets;
 
-	
+	$user = wp_get_current_user();
+	$role = bp_get_role($user);
+
+	$widgets = json_decode(_BP['widgets'], true);
+
+	if ($widgets && count($widgets) > 0) {
+		foreach ($widgets as $widget => $keys) {
+			$roles = $keys['roles'] ?? null;
+
+			if ($roles) {
+				if ($roles == '*' || in_array($role, explode(',', $roles)) || $role == 'administrator') {
+					$bp_widgets[$widget] = new _bpWidget([
+						'name' => $widget,
+						'icon' => $keys['icon'],
+						'title' => $keys['title'],
+						'kind' => $keys['kind'],
+						'slug' => $keys['slug'],
+						'options' => $keys['options'] ?? null,
+						'text' => $keys['text'],
+						'desc' => $keys['description']				
+					]);
+				}
+			}
+		}
+	}
 }
 
 
@@ -993,25 +1161,14 @@ function bp_app_page() {
 	$user = wp_get_current_user();
 	$role = bp_get_role($user);
 
-	$section = $_REQUEST['section'] ?: '';
-
-
-?>
-	<div class="wrap">
-		<h1>App Section</h1>
-<?php
-	switch ($role) {
-		case 'administrator': {
-			echo '<p>oh, so you\'re an admin huh?</p>';
-			break;
+	$post = (isset($_REQUEST['pid'])) ? get_post($_REQUEST['pid']) : null;
+	$section = ($_REQUEST['section']) ? ucwords(str_replace('-', ' ', $_REQUEST['section'])) : 'Application';
+	
+	echo '<div class="wrap">';
+		if (function_exists('bp_app_page_content')) {
+			bp_app_page_content($user, $role, $post, $section);
 		}
-		default: {
-			echo '<p>default</p>';
-		}
-	}
-?>
-	</div>
-<?php
+	echo '</div>';
 }
 
 
@@ -1046,29 +1203,13 @@ if (_BP['portal_active'] == 'yes') {
 		add_action('wp_dashboard_setup', 'bp_clean_dashboard_widgets');
 	}
 
-	if (_BP['custom_widgets'] == 'yes') {
-		$widgets = json_decode(_BP['widgets'], true);
-
-		if ($widgets && count($widgets) > 0) {
-			foreach ($widgets as $widget => $keys) {
-				$bp_widgets[$widget] = new _bpWidget([
-					'name' => $widget,
-					'icon' => $keys['icon'],
-					'title' => $keys['title'],
-					'kind' => $keys['kind'],
-					'slug' => $keys['slug'],
-					'text' => $keys['text'],
-					'desc' => $keys['description']				
-				]);
-			}
-		}
-	}
-
-	add_action('admin_head', 'bp_admin_colours');
+	add_action('admin_head', 'bp_admin_branding');
 
 	if (_BP['style_admin'] == 'yes') {
 		add_action('admin_head', 'bp_admin_styling');
 	}
+
+	remove_action('admin_color_scheme_picker', 'admin_color_scheme_picker');
 }
 
 if (_BP['pwa_active'] == 'yes') {
@@ -1076,7 +1217,12 @@ if (_BP['pwa_active'] == 'yes') {
 }
 
 add_filter('upload_mimes', 'bp_add_mime_types');
-//add_filter('init', 'bp_unfiltered_upload');
+
+// add app page
+
+add_action('admin_menu', function() {
+	add_menu_page('App', 'App', 'read', 'app', 'bp_app_page');
+});
 
 // boot plugin
 

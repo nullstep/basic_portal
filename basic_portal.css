@@ -1,9 +1,5 @@
 /* basic_portal plugin admin css */
 
-#wpwrap {
-	background: none;
-}
-
 #basic_portal-form .tab-content:after {
 	content: '';
 	display: table;
@@ -158,7 +154,7 @@
 	border: 1px solid #ddd;
 	margin-top: 4px;
 	margin-right: 15px;
-	height: 60vh;
+	height: 50vh;
 }
 
 /* eof */
