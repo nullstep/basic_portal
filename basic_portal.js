@@ -12,6 +12,7 @@ jQuery(function($) {
 			'clean_sidebar',
 			'clean_widgets',
 			'custom_widgets',
+			'widgets_file',
 			'style_admin',
 			'company_logo',
 			'company_name',
@@ -24,6 +25,8 @@ jQuery(function($) {
 			'bg_image',
 			'company_details',
 			'widgets',
+			'app_title',
+			'app_icon',
 			'bp_css',
 			'bp_js'
 		];

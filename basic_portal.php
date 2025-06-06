@@ -56,6 +56,10 @@ define('_ARGS_BASIC_PTL', [
 		'type' => 'string',
 		'default' => 'no'
 	],
+	'widgets_file' => [
+		'type' => 'string',
+		'default' => 'no'
+	],
 	'style_admin' => [
 		'type' => 'string',
 		'default' => 'no'
@@ -104,6 +108,14 @@ define('_ARGS_BASIC_PTL', [
 		'type' => 'string',
 		'default' => '{}'
 	],
+	'app_title' => [
+		'type' => 'string',
+		'default' => ''
+	],
+	'app_icon' => [
+		'type' => 'string',
+		'default' => ''
+	],
 	'bp_css' => [
 		'type' => 'string',
 		'default' => ''
@@ -143,6 +155,10 @@ define('_ADMIN_BASIC_PTL', [
 			],
 			'custom_widgets' => [
 				'label' => 'Custom Widgets Active',
+				'type' => 'check'
+			],
+			'widgets_file' => [
+				'label' => 'Use Widgets JSON File',
 				'type' => 'check'
 			],
 			'style_admin' => [
@@ -204,6 +220,14 @@ define('_ADMIN_BASIC_PTL', [
 			'widgets' => [
 				'label' => 'Widgets',
 				'type' => 'code'
+			],
+			'app_title' => [
+				'label' => 'App Menu Title',
+				'type' => 'input'
+			],
+			'app_icon' => [
+				'label' => 'App Menu Icon (base64 encoded)',
+				'type' => 'input'
 			]
 		]
 	],
@@ -710,7 +734,14 @@ function bp_admin_branding() {
 		--block-colour: {$block_colour};
 		--company-logo: url('{$company_logo}');
 		--background-image: url('{$background_img}');
-	}	
+	}
+	.postbox-header .hndle {
+		justify-content: flex-start;
+
+		& i {
+			padding-right: 10px;
+		}
+	}
 </style>
 CSS;
 
@@ -865,19 +896,13 @@ function bp_admin_styling() {
 		background-color: var(--block-colour);
 		color: #f0f0f1;
 		margin: 30px 0 0 0;
+		min-height: 120px;
 	}
 	#footer-thankyou, #footer-upgrade {
 		color: #fff;
 	}
 	.postbox {
 		background-color: rgba(255, 255, 255, 0.5);
-	}
-	.postbox-header .hndle {
-		justify-content: flex-start;
-
-		& i {
-			padding-right: 10px;
-		}
 	}
 	#your-profile {
 		& h2:not(:first-child) {
@@ -1123,7 +1148,13 @@ function bp_custom_dashboard_widgets() {
 	$user = wp_get_current_user();
 	$role = bp_get_role($user);
 
-	$widgets = json_decode(_BP['widgets'], true);
+	if (_BP['widgets_file'] == 'yes') {
+		$json = _PATH_BASIC_PTL . 'widgets.json';
+		$widgets = (file_exists($json)) ? json_decode(file_get_contents($json), true) : [];
+	}
+	else {
+		$widgets = json_decode(_BP['widgets'], true);
+	}
 
 	if ($widgets && count($widgets) > 0) {
 		foreach ($widgets as $widget => $keys) {
@@ -1221,7 +1252,17 @@ add_filter('upload_mimes', 'bp_add_mime_types');
 // add app page
 
 add_action('admin_menu', function() {
-	add_menu_page('App', 'App', 'read', 'app', 'bp_app_page');
+	$title = (_BP['app_title'] == '') ? 'App' : _BP['app_title'];
+	$icon = (_BP['app_icon'] == '') ? '' : '';
+
+	add_menu_page(
+		$title,
+		$title,
+		'read',
+		'app',
+		'bp_app_page',
+		$icon
+	);
 });
 
 // boot plugin
