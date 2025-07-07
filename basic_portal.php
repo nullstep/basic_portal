@@ -6,7 +6,7 @@
  * Description: set up site as portal/pwa
  * Author: nullstep
  * Author URI: https://localhost
- * Version: 1.2.1
+ * Version: 1.2.2
  */
 
 defined('ABSPATH') or die('⎺\_(ツ)_/⎺');
@@ -14,6 +14,7 @@ defined('ABSPATH') or die('⎺\_(ツ)_/⎺');
 // defines
 
 define('_PIN', '101730');
+define('ALLOW_UNFILTERED_UPLOADS', true);
 
 define('_PLUGIN_BASIC_PTL', 'basic_portal');
 
@@ -63,6 +64,18 @@ define('_ARGS_BASIC_PTL', [
 	'style_admin' => [
 		'type' => 'string',
 		'default' => 'no'
+	],
+	'style_login' => [
+		'type' => 'string',
+		'default' => 'no'
+	],
+	'favicon' => [
+		'type' => 'string',
+		'default' => ''
+	],
+	'login_logo' => [
+		'type' => 'string',
+		'default' => ''
 	],
 	'company_logo' => [
 		'type' => 'string',
@@ -164,6 +177,10 @@ define('_ADMIN_BASIC_PTL', [
 			'style_admin' => [
 				'label' => 'Admin CSS/JS Active',
 				'type' => 'check'
+			],
+			'style_login' => [
+				'label' => 'Login CSS/JS Active',
+				'type' => 'check'
 			]
 		]
 	],
@@ -178,6 +195,14 @@ define('_ADMIN_BASIC_PTL', [
 			'company_name' => [
 				'label' => 'Company Name',
 				'type' => 'input'
+			],
+			'favicon' => [
+				'label' => 'Site Favicon',
+				'type' => 'file'
+			],
+			'login_logo' => [
+				'label' => 'Login Screen Logo',
+				'type' => 'file'
 			],
 			'company_logo' => [
 				'label' => 'Company Logo',
@@ -215,7 +240,7 @@ define('_ADMIN_BASIC_PTL', [
 	],
 	'setup' => [
 		'label' => 'Setup',
-		'columns' => 3,
+		'columns' => 1,
 		'fields' => [
 			'widgets' => [
 				'label' => 'Widgets',
@@ -665,6 +690,8 @@ function bp_admin_init() {
         remove_action('network_admin_notices', 'update_nag', 3);
     }
 
+    wp_deregister_script('wp-a11y');
+
 	wp_enqueue_style('fontawesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css', '', '6.6.0', 'all');
 }
 
@@ -724,7 +751,6 @@ function bp_admin_branding() {
 	$background_img = wp_upload_dir()['url'] . '/' . _BP['bg_image'];
 
 	$styles = <<<CSS
-<style>
 	:root {
 		--primary-brand-colour: {$primary_colour};
 		--admin-highlight: {$primary_colour};
@@ -742,12 +768,81 @@ function bp_admin_branding() {
 			padding-right: 10px;
 		}
 	}
-</style>
 CSS;
 
-	$styles = apply_filters('bp_user_branding', $styles);
+	$styles = apply_filters('bp_admin_branding', $styles);
 
-	echo $styles;
+	echo '<style>' . "\n" . $styles . "\n" . '</style>';
+}
+
+// login screen styling and scripts
+
+function bp_login_styling() {
+	$uploads = wp_upload_dir()['url'] . '/';
+
+	$primary_colour = _BP['primary_colour'];
+	$contrast_colour = _BP['contrast_colour'];
+	$login_logo = $uploads . _BP['login_logo'];
+	$favicon = $uploads . _BP['favicon'];
+	$portal_title = _BP['portal_title'];
+
+	$styles = <<<CSS
+	input:focus {
+		border-color: #333 !important;
+		box-shadow: 0 0 0 1px #333 !important
+	}
+	#login-message {
+		border-left: 5px solid {$primary_colour};
+	}
+	.wp-core-ui .button-primary {
+		background: #333;
+		border-color: #333;
+		color: #fefefe
+	}
+	.wp-core-ui .button-primary:hover {
+		background: {$primary_colour};
+		border-color: #444;
+		color: #fefefe
+	}
+	.dashicons {
+		color: #333
+	}
+	.login form {
+		border-radius: 8px;
+		box-shadow: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px !important;
+		margin-bottom: 3rem;
+	}
+	h1 a {
+		background-image: url('{$login_logo}') !important;
+		width: 300px !important;
+		background-size: 84px 84px !important;
+	}
+	#backtoblog, .language-switcher {
+		display: none
+	}
+	#nav {
+		text-align: center;
+	}
+CSS;
+
+	$styles = apply_filters('bp_login_branding', $styles);
+
+	echo '<style>' . "\n" . $styles . "\n" . '</style>';
+
+	$js = apply_filters('bp_login_scripts', '');
+
+	echo '<script>' . "\n" . $js . "\n" . '</script>';
+	echo '<link rel="shortcut icon" href="' . $favicon . '">';
+}
+
+// login screen adjustments
+
+function bp_login_logo_url() {
+	return '/';
+}
+
+function bp_login_logo_title() {
+	return _BP['portal_title'];
 }
 
 // admin styling and scripts
@@ -758,7 +853,9 @@ function bp_admin_styling() {
 		$role = bp_get_role($user);
 ?>
 <style>
-
+	body, html {
+		height: unset !important;
+	}
 	html.wp-toolbar {
 		padding-top: 10px !important
 	}
@@ -843,17 +940,24 @@ function bp_admin_styling() {
 			margin-top: 10px;
 		}
 	}
-
+	@media (width <= 600px) {
+		#wpadminbar {
+			position: fixed;
+		}
+	}
 	#wpadminbar {
 		height: 64px;
 		padding-left: 15px;
 		background-color: var(--block-colour);
 		border-left: 5px solid var(--primary-brand-colour);
 		background-image: var(--company-logo);
-		background-position: 98% 50%;
+		background-position: calc(100% - 35px) 50%;
 		background-size: auto 70%;
 		background-repeat: no-repeat;
+		max-width: 100vw;
+		overflow-x: hidden;
 	}
+
 	#wpadminbar i {
 		display: inline-block;
 		position: relative;
@@ -890,13 +994,17 @@ function bp_admin_styling() {
 		background-size: auto 80%;
 		background-position: center top;
 	}
+	@media (width <= 960px) {
+		#wpfooter {
+			margin-left: 0 !important;
+		}
+	}
 	#wpfooter {
 		position: static;
 		display: block;
 		background-color: var(--block-colour);
 		color: #f0f0f1;
 		margin: 30px 0 0 0;
-		min-height: 120px;
 	}
 	#footer-thankyou, #footer-upgrade {
 		color: #fff;
@@ -919,7 +1027,6 @@ function bp_admin_styling() {
 	#application-passwords-section {
 		display: none;
 	}
-
 	<?php echo _BP['bp_css']; ?>
 </style>
 <script>
@@ -1240,6 +1347,12 @@ if (_BP['portal_active'] == 'yes') {
 		add_action('admin_head', 'bp_admin_styling');
 	}
 
+	if (_BP['style_login'] == 'yes') {
+		add_action('login_head', 'bp_login_styling');
+		add_filter('login_headerurl', 'bp_login_logo_url');
+		add_filter('login_headertext', 'bp_login_logo_title');
+	}
+
 	remove_action('admin_color_scheme_picker', 'admin_color_scheme_picker');
 }
 
@@ -1253,7 +1366,7 @@ add_filter('upload_mimes', 'bp_add_mime_types');
 
 add_action('admin_menu', function() {
 	$title = (_BP['app_title'] == '') ? 'App' : _BP['app_title'];
-	$icon = (_BP['app_icon'] == '') ? '' : '';
+	$icon = (_BP['app_icon'] == '') ? '' : 'data:image/svg+xml;base64,' . _BP['app_icon'];
 
 	add_menu_page(
 		$title,
