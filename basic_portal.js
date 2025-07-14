@@ -240,54 +240,6 @@ jQuery(function($) {
 			$(bid).val($(this).val());
 		});
 	}
-	else {
-		var get_param = function(val) {
-			var url = decodeURIComponent(window.location.search.substring(1)), vars = url.split('&'), param, i;
-			for (i = 0; i < vars.length; i++) {
-				param = vars[i].split('=');
-				if (param[0] === val) {
-					return param[1] === undefined ? true : param[1];
-				}
-			}
-		};
-		$('table.wp-list-table #the-list').sortable({
-			placeholder: {
-				element: function(ci) {
-					var cols = $(ci).children('td:visible').length + 1;
-					return $('<tr class="ui-sortable-placeholder"><td colspan="' + cols + '">&nbsp;</td></tr>')[0];
-				},
-				update: function(container, p) {
-					return;
-				}
-			},
-			'items': 'tr',
-			'handle': ".check-column",
-			'axis': 'y',
-			'update' : function(e, ui) {
-				var order = $('#the-list').sortable('serialize');
-				var paged = get_param('paged');
-				if (typeof paged === 'undefined') {
-					paged = 1;
-				}
-				var qs = {
-					"action": "update-custom-type-order-archive",
-					"post_type" : bb.post_type,
-					"order" : order,
-					"paged": paged,
-					"archive_sort_nonce": bb.archive_sort_nonce
-				};
-				$.ajax({
-					type: 'POST',
-					url: ajaxurl,
-					data: qs,
-					cache: false,
-					dataType: "html",
-					success: function(data){},
-					error: function(html){}
-				});
-			}
-		});
-	}
 });
 
 // eof

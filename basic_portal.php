@@ -6,7 +6,7 @@
  * Description: set up site as portal/pwa
  * Author: nullstep
  * Author URI: https://localhost
- * Version: 1.2.2
+ * Version: 1.2.3
  */
 
 defined('ABSPATH') or die('⎺\_(ツ)_/⎺');
@@ -37,7 +37,15 @@ define('_ARGS_BASIC_PTL', [
 		'type' => 'string',
 		'default' => 'no'
 	],
+	'cron_jobs' => [
+		'type' => 'string',
+		'default' => 'no'
+	],
 	'pwa_active' => [
+		'type' => 'string',
+		'default' => 'no'
+	],
+	'admin_redirect' => [
 		'type' => 'string',
 		'default' => 'no'
 	],
@@ -152,6 +160,14 @@ define('_ADMIN_BASIC_PTL', [
 			],
 			'pwa_active' => [
 				'label' => 'PWA Active',
+				'type' => 'check'
+			],
+			'cron_jobs' => [
+				'label' => 'Cron Jobs Active',
+				'type' => 'check'
+			],
+			'admin_redirect' => [
+				'label' => 'Redirect to Admin/Dashboard',
 				'type' => 'check'
 			],
 			'clean_adminbar' => [
@@ -1097,6 +1113,54 @@ function bp_add_mime_types($mimes) {
 	return $mimes;
 }
 
+// admin/dashboard redirection
+
+function bp_redirect_to_admin() {
+	if (is_user_logged_in()) {
+		return;
+	}
+
+	if (defined('DOING_AJAX') && DOING_AJAX) {
+		return;
+	}
+
+	if (isset($_GET['interim-login'])) {
+		return;
+	}
+
+	if (defined('REST_REQUEST') && REST_REQUEST) {
+		return;
+	}
+
+	if (strpos($_SERVER['REQUEST_URI'], 'wp-json') !== false) {
+		return;
+	}
+
+	$is_login = in_array($GLOBALS['pagenow'], ['wp-login.php', 'wp-register.php']);
+
+	if (!is_admin() && !$is_login) {
+		wp_redirect(wp_login_url());
+		exit;
+	}
+}
+
+function bp_dashboard_redirect($redirect_to, $request, $user) {
+	if (isset($_REQUEST['interim-login']) && $_REQUEST['interim-login']) {
+		return $redirect_to;
+	}
+
+	return admin_url();
+}
+
+// nagging off please
+
+function bp_disable_update_notifications() {
+	if (!current_user_can('update_core')) {
+		remove_action('admin_notices', 'update_nag', 3);
+		remove_action('network_admin_notices', 'update_nag', 3);
+	}
+}
+
 
 //   ▄█     █▄    ▄█   ████████▄      ▄██████▄      ▄████████      ███         ▄████████  
 //  ███     ███  ███   ███   ▀███    ███    ███    ███    ███  ▀█████████▄    ███    ███  
@@ -1286,6 +1350,38 @@ function bp_custom_dashboard_widgets() {
 }
 
 
+//   ▄████████     ▄████████   ▄██████▄   ███▄▄▄▄▄    
+//  ███    ███    ███    ███  ███    ███  ███▀▀▀▀██▄  
+//  ███    █▀     ███    ███  ███    ███  ███    ███  
+//  ███          ▄███▄▄▄▄██▀  ███    ███  ███    ███  
+//  ███         ▀▀███▀▀▀▀▀    ███    ███  ███    ███  
+//  ███    █▄   ▀███████████  ███    ███  ███    ███  
+//  ███    ███    ███    ███  ███    ███  ███    ███  
+//  ████████▀     ███    ███   ▀██████▀    ▀█    █▀
+
+function bp_cron_schedule() {
+	if (!wp_next_scheduled('bp_cron_event')) {
+		wp_schedule_event(time(), 'daily', 'bp_cron_event');
+	}
+}
+
+function bp_cron_job() {
+	if (function_exists('bp_cron_function')) {
+		bp_cron_function();
+
+		// error_log('bp cron done');
+	}
+}
+
+function bp_cron_deactivation() {
+	$timestamp = wp_next_scheduled('bp_cron_event');
+
+	if ($timestamp) {
+		wp_unschedule_event($timestamp, 'bp_cron_event');
+	}
+}
+
+
 //     ▄████████     ▄███████▄     ▄███████▄  
 //    ███    ███    ███    ███    ███    ███  
 //    ███    ███    ███    ███    ███    ███  
@@ -1354,6 +1450,20 @@ if (_BP['portal_active'] == 'yes') {
 	}
 
 	remove_action('admin_color_scheme_picker', 'admin_color_scheme_picker');
+
+	if (_BP['admin_redirect'] == 'yes') {
+		add_action('template_redirect', 'bp_redirect_to_admin');
+		add_filter('login_redirect', 'bp_dashboard_redirect', 10, 3);
+	}
+
+	add_action('admin_init', 'bp_disable_update_notifications');
+	add_filter('admin_email_check_interval', '__return_false');
+
+	if (_BP['cron_jobs'] == 'yes') {
+		add_action('bp_cron_event', 'bp_cron_job');
+		add_action('wp', 'bp_cron_schedule');
+		register_deactivation_hook(__FILE__, 'bp_cron_deactivation');
+	}
 }
 
 if (_BP['pwa_active'] == 'yes') {
