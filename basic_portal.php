@@ -6,7 +6,7 @@
  * Description: set up site as portal/pwa
  * Author: nullstep
  * Author URI: https://localhost
- * Version: 1.2.3
+ * Version: 1.2.4
  */
 
 defined('ABSPATH') or die('⎺\_(ツ)_/⎺');
@@ -704,12 +704,12 @@ function bp_init($dir) {
 
 function bp_admin_init() {
 	if (!current_user_can('update_core')) {
-        remove_action('admin_notices', 'update_nag', 3);
-        remove_action('network_admin_notices', 'update_nag', 3);
-    }
+		remove_action('admin_notices', 'update_nag', 3);
+		remove_action('network_admin_notices', 'update_nag', 3);
+	}
 
-    wp_deregister_script('wp-a11y');
-
+	wp_deregister_script('wp-a11y');
+	wp_register_script('wp-a11y', 'data:text/javascript,' . rawurlencode('window.wp = window.wp || {}; wp.a11y = { speak: function(){} };'), [], false, true);
 	wp_enqueue_style('fontawesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css', '', '6.6.0', 'all');
 }
 
