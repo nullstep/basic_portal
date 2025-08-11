@@ -13,8 +13,10 @@ jQuery(function($) {
 			'clean_widgets',
 			'custom_widgets',
 			'widgets_file',
+			'pages_file',
 			'style_admin',
 			'style_login',
+			'admin_url',
 			'login_logo',
 			'company_logo',
 			'favicon',
@@ -28,13 +30,15 @@ jQuery(function($) {
 			'bg_image',
 			'company_details',
 			'widgets',
-			'app_title',
-			'app_icon',
+			'pages',
+			'left_menu',
+			'right_menu',
 			'bp_css',
 			'bp_js'
 		];
 		const editors = [
 			'widgets',
+			'pages',
 			'bp_css',
 			'bp_js'
 		];

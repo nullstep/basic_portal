@@ -6,7 +6,7 @@
  * Description: set up site as portal/pwa
  * Author: nullstep
  * Author URI: https://localhost
- * Version: 1.2.4
+ * Version: 1.2.5
  */
 
 defined('ABSPATH') or die('⎺\_(ツ)_/⎺');
@@ -121,7 +121,7 @@ define('_ARGS_BASIC_PTL', [
 		'type' => 'string',
 		'default' => '#222'
 	],
-	'contrast_colour' => [
+	'widget_colour' => [
 		'type' => 'string',
 		'default' => '#111'
 	],
@@ -133,13 +133,17 @@ define('_ARGS_BASIC_PTL', [
 		'type' => 'string',
 		'default' => '{}'
 	],
-	'app_title' => [
+	'pages' => [
 		'type' => 'string',
-		'default' => ''
+		'default' => '{}'
 	],
-	'app_icon' => [
+	'left_menu' => [
 		'type' => 'string',
-		'default' => ''
+		'default' => 'no'
+	],
+	'right_menu' => [
+		'type' => 'string',
+		'default' => 'no'
 	],
 	'bp_css' => [
 		'type' => 'string',
@@ -194,6 +198,10 @@ define('_ADMIN_BASIC_PTL', [
 				'label' => 'Use Widgets JSON File',
 				'type' => 'check'
 			],
+			'pages_file' => [
+				'label' => 'Use Pages JSON File',
+				'type' => 'check'
+			],
 			'style_admin' => [
 				'label' => 'Admin CSS/JS Active',
 				'type' => 'check'
@@ -201,6 +209,10 @@ define('_ADMIN_BASIC_PTL', [
 			'style_login' => [
 				'label' => 'Login CSS/JS Active',
 				'type' => 'check'
+			],
+			'admin_url' => [
+				'label' => 'Admin URL',
+				'type' => 'input'
 			]
 		]
 	],
@@ -260,19 +272,23 @@ define('_ADMIN_BASIC_PTL', [
 	],
 	'setup' => [
 		'label' => 'Setup',
-		'columns' => 1,
+		'columns' => 2,
 		'fields' => [
 			'widgets' => [
 				'label' => 'Widgets',
 				'type' => 'code'
 			],
-			'app_title' => [
-				'label' => 'App Menu Title',
-				'type' => 'input'
+			'pages' => [
+				'label' => 'Pages',
+				'type' => 'code'
 			],
-			'app_icon' => [
-				'label' => 'App Menu Icon (base64 encoded)',
-				'type' => 'input'
+			'left_menu' => [
+				'label' => 'Left Menu',
+				'type' => 'check'
+			],
+			'right_menu' => [
+				'label' => 'Right Menu',
+				'type' => 'check'
 			]
 		]
 	],
@@ -760,11 +776,14 @@ function bp_clean_admin_menu() {
 // admin colours
 
 function bp_admin_branding() {
+	$uploads = wp_upload_dir()['url'] . '/';
+
 	$primary_colour = _BP['primary_colour'];
 	$contrast_colour = _BP['contrast_colour'];
 	$secondary_colour = _BP['secondary_colour'];
 	$bg_colour = _BP['bg_colour'];
 	$block_colour = _BP['block_colour'];
+	$favicon = $uploads . _BP['favicon'];
 	$company_logo = wp_upload_dir()['url'] . '/' . _BP['company_logo'];
 	$background_img = wp_upload_dir()['url'] . '/' . _BP['bg_image'];
 
@@ -791,6 +810,7 @@ CSS;
 	$styles = apply_filters('bp_admin_branding', $styles);
 
 	echo '<style>' . "\n" . $styles . "\n" . '</style>';
+	echo '<link rel="shortcut icon" href="' . $favicon . '">';
 }
 
 // login screen styling and scripts
@@ -1118,10 +1138,6 @@ function bp_add_mime_types($mimes) {
 // admin/dashboard redirection
 
 function bp_redirect_to_admin() {
-	if (is_user_logged_in()) {
-		return;
-	}
-
 	if (defined('DOING_AJAX') && DOING_AJAX) {
 		return;
 	}
@@ -1140,9 +1156,19 @@ function bp_redirect_to_admin() {
 
 	$is_login = in_array($GLOBALS['pagenow'], ['wp-login.php', 'wp-register.php']);
 
-	if (!is_admin() && !$is_login) {
-		wp_redirect(wp_login_url());
-		exit;
+	if ($is_login) {
+		return;
+	}
+
+	if (!is_admin()) {
+		if (is_user_logged_in()) {
+			wp_redirect(admin_url());
+			exit;
+		}
+		else {
+			wp_redirect(wp_login_url());
+			exit;
+		}
 	}
 }
 
