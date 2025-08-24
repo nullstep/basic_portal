@@ -6,7 +6,7 @@
  * Description: set up site as portal/pwa
  * Author: nullstep
  * Author URI: https://localhost
- * Version: 1.2.5
+ * Version: 1.2.6
  */
 
 defined('ABSPATH') or die('⎺\_(ツ)_/⎺');
@@ -113,7 +113,7 @@ define('_ARGS_BASIC_PTL', [
 		'type' => 'string',
 		'default' => '#555555'
 	],
-	'bg_colour' => [
+	'background_colour' => [
 		'type' => 'string',
 		'default' => '#f5f7f8'
 	],
@@ -209,10 +209,6 @@ define('_ADMIN_BASIC_PTL', [
 			'style_login' => [
 				'label' => 'Login CSS/JS Active',
 				'type' => 'check'
-			],
-			'admin_url' => [
-				'label' => 'Admin URL',
-				'type' => 'input'
 			]
 		]
 	],
@@ -249,23 +245,23 @@ define('_ADMIN_BASIC_PTL', [
 				'type' => 'input'
 			],
 			'primary_colour' => [
-				'label' => 'Primary Brand Colour',
+				'label' => 'Primary Colour',
 				'type' => 'colour'
 			],
 			'secondary_colour' => [
-				'label' => 'Secondary Brand Colour',
+				'label' => 'Secondary Colour',
 				'type' => 'colour'
 			],
-			'bg_colour' => [
-				'label' => 'Admin Background Colour',
+			'background_colour' => [
+				'label' => 'Background Colour',
 				'type' => 'colour'
 			],
 			'block_colour' => [
-				'label' => 'Admin Block Colour',
+				'label' => 'Block Colour',
 				'type' => 'colour'
 			],
-			'contrast_colour' => [
-				'label' => 'Admin Contrast Colour',
+			'widget_colour' => [
+				'label' => 'Widget Colour',
 				'type' => 'colour'
 			]
 		]
@@ -635,6 +631,17 @@ function bp_check_pin() {
 	return ($pin == _PIN);
 }
 
+// get contrast colour
+
+function bp_contrast($hex) {
+    $hex = ltrim($hex, '#');
+    $r = hexdec(substr($hex, 0, 2));
+    $g = hexdec(substr($hex, 2, 2));
+    $b = hexdec(substr($hex, 4, 2));
+    $yiq = (($r * 299) + ($g * 587) + ($b * 114)) / 1000;
+    return ($yiq >= 128) ? 'black' : 'white';
+}
+
 // get role from user
 
 function bp_get_role($user) {
@@ -779,22 +786,25 @@ function bp_admin_branding() {
 	$uploads = wp_upload_dir()['url'] . '/';
 
 	$primary_colour = _BP['primary_colour'];
-	$contrast_colour = _BP['contrast_colour'];
+	$primary_contrast_colour = bp_contrast(_BP['primary_colour']);
 	$secondary_colour = _BP['secondary_colour'];
-	$bg_colour = _BP['bg_colour'];
+	$secondary_contrast_colour = bp_contrast(_BP['secondary_colour']);
+	$background_colour = _BP['background_colour'];
 	$block_colour = _BP['block_colour'];
+	$widget_colour = _BP['widget_colour'];	
 	$favicon = $uploads . _BP['favicon'];
-	$company_logo = wp_upload_dir()['url'] . '/' . _BP['company_logo'];
-	$background_img = wp_upload_dir()['url'] . '/' . _BP['bg_image'];
+	$company_logo = $uploads . _BP['company_logo'];
+	$background_img = $uploads . _BP['bg_image'];
 
 	$styles = <<<CSS
 	:root {
-		--primary-brand-colour: {$primary_colour};
-		--admin-highlight: {$primary_colour};
-		--admin-contrast: {$contrast_colour};
-		--secondary-brand-colour: {$secondary_colour};
-		--bg-colour: {$bg_colour};
+		--primary-colour: {$primary_colour};
+		--primary-contrast-colour: {$primary_contrast_colour};
+		--secondary-colour: {$secondary_colour};
+		--secondary-contrast-colour: {$secondary_contrast_colour};
+		--background-colour: {$background_colour};
 		--block-colour: {$block_colour};
+		--widget-colour: {$widget_colour};
 		--company-logo: url('{$company_logo}');
 		--background-image: url('{$background_img}');
 	}
@@ -819,7 +829,6 @@ function bp_login_styling() {
 	$uploads = wp_upload_dir()['url'] . '/';
 
 	$primary_colour = _BP['primary_colour'];
-	$contrast_colour = _BP['contrast_colour'];
 	$login_logo = $uploads . _BP['login_logo'];
 	$favicon = $uploads . _BP['favicon'];
 	$portal_title = _BP['portal_title'];
@@ -895,59 +904,54 @@ function bp_admin_styling() {
 		height: unset !important;
 	}
 	html.wp-toolbar {
-		padding-top: 10px !important
+		padding-top: 10px !important;
 	}
 	#wpcontent, #footer {
-		margin-left: 0px !important
+		margin-left: 0px !important;
 	}
 	.wp-core-ui .button, .wp-core-ui .button-primary, .wp-core-ui .button-secondary {
-		border-radius: 3px
+		border-radius: 3px;
 	}
 	.wp-core-ui .button-primary {
-		background: var(--primary-brand-colour);
-		border-color: var(--primary-brand-colour);
-		color: #fff;
+		background: var(--primary-colour);
+		border-color: var(--primary-colour);
+		color: var(--primary-contrast-colour);
 		text-decoration: none;
-		text-shadow: none
+		text-shadow: none;
 	}
 	.wp-core-ui .button-primary.focus, .wp-core-ui .button-primary.hover, .wp-core-ui .button-primary:focus, .wp-core-ui .button-primary:hover {
-		background: var(--primary-brand-colour);
-		border-color: var(--primary-brand-colour);
-		color: #fff
-	}
-	.wp-core-ui .button-primary.focus, .wp-core-ui .button-primary.hover, .wp-core-ui .button-primary:focus, .wp-core-ui .button-primary:hover {
-		background: var(--primary-brand-colour);
-		border-color: var(--primary-brand-colour);
-		color: #fff
+		background: var(--primary-colour);
+		border-color: var(--primary-colour);
+		color: var(--primary-contrast-colour);
 	}
 	.wp-core-ui .button-secondary {
-		color: var(--primary-brand-colour);
-		border-color: var(--primary-brand-colour);
-		background: var(--secondary-brand-colour);
-		vertical-align: top
+		color: var(--primary-colour);
+		border-color: var(--primary-colour);
+		background: #f1f1f1;
+		vertical-align: top;
 	}
 	.wp-core-ui .button-secondary:hover, .wp-core-ui .button.hover, .wp-core-ui .button:hover {
 		background: #f1f1f1;
-		border-color: var(--primary-brand-colour);
-		color: var(--primary-brand-colour)
+		border-color: var(--primary-colour);
+		color: var(--primary-colour)
 	}
 	.wp-core-ui .button-secondary:focus, .wp-core-ui .button.focus, .wp-core-ui .button:focus {
-		background: var(--secondary-brand-colour);
-		border-color: var(--primary-brand-colour);
-		color: var(--primary-brand-colour);
-		box-shadow: 0 0 0 1px var(--primary-brand-colour);
+		background: #f1f1f1;
+		border-color: var(--primary-colour);
+		color: var(--primary-colour);
+		box-shadow: 0 0 0 1px var(--primary-colour);
 		outline: 2px solid transparent;
 		outline-offset: 0
 	}
 	.page-title-action, .actions .button {
-		border-color: var(--primary-brand-colour) !important;
-		color: var(--primary-brand-colour) !important;
-		background: var(--secondary-brand-colour) !important
+		border-color: var(--primary-colour) !important;
+		color: var(--primary-colour) !important;
+		background: #f1f1f1 !important
 	}
 	.page-title-action.primary, .actions .button {
-		border-color: var(--primary-brand-colour) !important;
+		border-color: var(--primary-colour) !important;
 		color: #fff !important;
-		background: var(--primary-brand-colour) !important
+		background: var(--primary-colour) !important
 	}
 	#welcome-panel, #menu-posts, #menu-pages, #menu-comments, #menu-appearance, #menu-plugins, #menu-tools, #menu-settings, #show-settings-link, #wp-admin-bar-comments, #wp-admin-bar-new-content, #application-passwords-section p, .term-parent-wrap, #minor-publishing-actions, #misc-publishing-actions, #screen-meta-links, #wp-admin-bar-wp-logo, #adminmenuback, #adminmenuwrap, #contextual-help-link-wrap, tr.user-language-wrap, #wp-admin-bar-view, .user-rich-editing-wrap, .user-admin-color-wrap, .user-comment-shortcuts-wrap, .user-admin-bar-front-wrap, .user-language-wrap, .user-url-wrap, .user-profile-picture, #application-passwords-section, .user-description-wrap .description, .inline-edit-group .inline-edit-status, #footer-thankyou, #footer-upgrade, #wp-admin-bar-top-secondary {
 		display: none;
@@ -987,7 +991,7 @@ function bp_admin_styling() {
 		height: 64px;
 		padding-left: 15px;
 		background-color: var(--block-colour);
-		border-left: 5px solid var(--primary-brand-colour);
+		border-left: 5px solid var(--primary-colour);
 		background-image: var(--company-logo);
 		background-position: calc(100% - 35px) 50%;
 		background-size: auto 70%;
@@ -1007,7 +1011,7 @@ function bp_admin_styling() {
 	}
 	#wpadminbar .ab-top-menu>li.hover>.ab-item, #wpadminbar.nojq .quicklinks .ab-top-menu>li>.ab-item:focus, #wpadminbar:not(.mobile) .ab-top-menu>li:hover>.ab-item, #wpadminbar:not(.mobile) .ab-top-menu>li>.ab-item:focus {
 		background: none;
-		color: var(--primary-brand-colour);
+		color: var(--primary-colour);
 	}
 	#wpbody {
 		margin-top: 64px;
@@ -1025,10 +1029,10 @@ function bp_admin_styling() {
 		height: 64px;
 	}
 	body {
-		background-color: var(--bg-colour);
+		background-color: var(--background-colour);
 	}
 	#wpwrap {
-		background: var(--bg-colour) var(--background-image) no-repeat;
+		background: var(--background-colour) var(--background-image) no-repeat;
 		background-size: auto 80%;
 		background-position: center top;
 	}
@@ -1423,8 +1427,8 @@ function bp_app_page() {
 	$user = wp_get_current_user();
 	$role = bp_get_role($user);
 
-	$post = (isset($_REQUEST['pid'])) ? get_post($_REQUEST['pid']) : null;
-	$section = ($_REQUEST['section']) ? ucwords(str_replace('-', ' ', $_REQUEST['section'])) : 'Application';
+	$post = (isset($_GET['pid'])) ? get_post($_GET['pid']) : null;
+	$section = (isset($_GET['section'])) ? ucwords(str_replace('-', ' ', $_GET['section'])) : 'application';
 	
 	echo '<div class="wrap">';
 		if (function_exists('bp_app_page_content')) {
@@ -1500,20 +1504,22 @@ if (_BP['pwa_active'] == 'yes') {
 
 add_filter('upload_mimes', 'bp_add_mime_types');
 
-// add app page
+// add app page(s)
 
 add_action('admin_menu', function() {
-	$title = (_BP['app_title'] == '') ? 'App' : _BP['app_title'];
-	$icon = (_BP['app_icon'] == '') ? '' : 'data:image/svg+xml;base64,' . _BP['app_icon'];
-
-	add_menu_page(
-		$title,
-		$title,
-		'read',
-		'app',
-		'bp_app_page',
-		$icon
-	);
+	if (_BP['pages'] == 'yes') {
+		$json = _PATH_BASIC_PTL . 'widgets.json';
+		$pages = (file_exists($json)) ? json_decode(file_get_contents($json), true) : [];
+	}
+	else {
+		add_menu_page(
+			'app',
+			'app',
+			'read',
+			'app',
+			'bp_app_page'
+		);
+	}
 });
 
 // boot plugin
